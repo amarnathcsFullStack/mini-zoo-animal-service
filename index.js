@@ -38,6 +38,8 @@ app.post("/animals/1/feed", (req, res) => {
 });
 
 
-app.listen(3000, () => {
-  console.log("Animal Service is running on port 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Animal Service is running on port ${PORT}`);
 });
