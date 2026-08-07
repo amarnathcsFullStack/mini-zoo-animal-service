@@ -1,7 +1,29 @@
 // run `node index.js` in the terminal
 const express = require("express");
+const Database = require("better-sqlite3");
 
 const app = express();
+
+const db = new Database("animals.db");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS animals (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    species TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    bellySize INTEGER NOT NULL
+  )
+`);
+const existingAnimal = db
+  .prepare("SELECT * FROM animals WHERE id = ?")
+  .get(1);
+
+if (!existingAnimal) {
+  db.prepare(`
+    INSERT INTO animals (id, name, species, age, bellySize)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(1, "Tiger", "Tiger", 5, 0);
+}
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
