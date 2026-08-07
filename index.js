@@ -87,11 +87,7 @@ async function startServer() {
       bellySize: animal[4]
     });
   });
-  app.get("/animals/db", (req, res) => {
-    const result = db.exec("SELECT * FROM animals");
-  
-    res.json(result);
-  });
+
 
   // POST /animals/1/feed
   app.post("/animals/1/feed", async (req, res) => {
