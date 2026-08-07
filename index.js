@@ -29,21 +29,45 @@ app.post("/animals/1/feed", async (req, res) => {
     });
   }
 
-  const foodResponse = await fetch(
-    "https://mini-zoo-food-service.onrender.com/feed",
-    {
-      method: "POST"
+  try {
+    console.log("Calling Food Service...");
+
+    const foodResponse = await fetch(
+      "https://mini-zoo-food-service.onrender.com/feed",
+      {
+        method: "POST"
+      }
+    );
+
+    if (!foodResponse.ok) {
+      console.error(
+        "Food Service returned:",
+        foodResponse.status
+      );
+
+      return res.status(503).json({
+        message: "Food Service is unavailable"
+      });
     }
-  );
 
-  const food = await foodResponse.json();
+    const food = await foodResponse.json();
 
-  animal.bellySize += food.amount;
+    console.log("Food received:", food);
 
-  res.json({
-    message: `Tiger was fed ${food.food}`,
-    animal: animal
-  });
+    animal.bellySize += food.amount;
+
+    res.json({
+      message: `Tiger was fed ${food.food}`,
+      animal: animal
+    });
+
+  } catch (error) {
+    console.error("Food Service call failed:", error);
+
+    res.status(503).json({
+      message: "Food Service is unavailable"
+    });
+  }
 });
 
 
