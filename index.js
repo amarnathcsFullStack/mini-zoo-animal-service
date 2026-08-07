@@ -22,17 +22,26 @@ app.get("/animals", (req, res) => {
   res.json(animal);
 });
 
-app.post("/animals/1/feed", (req, res) => {
+app.post("/animals/1/feed", async (req, res) => {
   if (animal.bellySize >= 10) {
     return res.status(400).json({
       message: "Tiger is already full"
     });
   }
 
-  animal.bellySize += 1;
+  const foodResponse = await fetch(
+    "https://mini-zoo-food-service.onrender.com/feed",
+    {
+      method: "POST"
+    }
+  );
+
+  const food = await foodResponse.json();
+
+  animal.bellySize += food.amount;
 
   res.json({
-    message: "Tiger was fed",
+    message: `Tiger was fed ${food.food}`,
     animal: animal
   });
 });
