@@ -1,18 +1,16 @@
 
-// run `node index.js` in the terminal
-
 const express = require("express");
 
 const {
-  initializeDatabase,
   getAnimal,
-  feedAnimal
+  updateBellySize
 } = require("./database");
 
 const app = express();
 
 app.use(express.json());
 
+// CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   next();
@@ -24,37 +22,49 @@ app.get("/", (req, res) => {
 });
 
 // GET /animals
-app.get("/animals", (req, res) => {
-  const animal = getAnimal(1);
+app.get("/animals", async (req, res) => {
+  try {
+    const animal = await getAnimal(1);
 
-  if (!animal) {
-    return res.status(404).json({
-      message: "Animal not found"
+    if (!animal) {
+      return res.status(404).json({
+        message: "Animal not found"
+      });
+    }
+
+    res.json(animal);
+
+  } catch (error) {
+    console.error("Failed to get animal:", error);
+
+    res.status(500).json({
+      message: "Failed to get animal"
     });
   }
-
-  res.json(animal);
 });
 
 // POST /animals/1/feed
 app.post("/animals/1/feed", async (req, res) => {
-  const animal = getAnimal(1);
-
-  if (!animal) {
-    return res.status(404).json({
-      message: "Animal not found"
-    });
-  }
-
-  if (animal.bellySize >= 10) {
-    return res.status(400).json({
-      message: "Tiger is already full"
-    });
-  }
-
   try {
+    // Get current Tiger from PostgreSQL
+    const animal = await getAnimal(1);
+
+    if (!animal) {
+      return res.status(404).json({
+        message: "Animal not found"
+      });
+    }
+
+    // Check if Tiger is already full
+    if (animal.bellySize >= 10) {
+      return res.status(400).json({
+        message: "Tiger is already full"
+      });
+    }
+
     console.log("Calling Food Service...");
 
+    // Call Food Service
     const foodResponse = await fetch(
       "https://mini-zoo-food-service.onrender.com/feed",
       {
@@ -62,6 +72,7 @@ app.post("/animals/1/feed", async (req, res) => {
       }
     );
 
+    // Food Service returned an error
     if (!foodResponse.ok) {
       console.error(
         "Food Service returned:",
@@ -73,14 +84,22 @@ app.post("/animals/1/feed", async (req, res) => {
       });
     }
 
+    // Get food information
     const food = await foodResponse.json();
 
     console.log("Food received:", food);
 
-    const updatedAnimal = feedAnimal(
+    // Update bellySize in PostgreSQL
+    const updatedAnimal = await updateBellySize(
       1,
       food.amount
     );
+
+    if (!updatedAnimal) {
+      return res.status(500).json({
+        message: "Failed to update animal"
+      });
+    }
 
     res.json({
       message: `Tiger was fed ${food.food}`,
@@ -99,21 +118,10 @@ app.post("/animals/1/feed", async (req, res) => {
   }
 });
 
-// Initialize database first, then start server
-initializeDatabase()
-  .then(() => {
-    const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-    app.listen(PORT, () => {
-      console.log(
-        `Animal Service is running on port ${PORT}`
-      );
-    });
-  })
-  .catch((error) => {
-    console.error(
-      "Database initialization failed:",
-      error
-    );
-  });
-
+app.listen(PORT, () => {
+  console.log(
+    `Animal Service is running on port ${PORT}`
+  );
+});
